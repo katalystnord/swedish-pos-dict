@@ -135,6 +135,30 @@ def normalize_msd(msd: str) -> str:
     return re.sub(r"\s+\d+:\d+-\d+$", "", msd).strip()
 
 
+def noun_gender_from_ending(form: str, msd: str) -> str | None:
+    """For nouns whose paradigm doesn't fix a gender (SALDO's 'v'-class,
+    irregular/dual-gender declensions, e.g. paradigm nn_vv_test): each
+    definite-singular form's own ending is still an unambiguous Swedish
+    morphological marker (-en/-ens = utrum, -et/-ets = neutrum), verified
+    against real dual-gender entries like "ziqqurat" (ziqquraten vs.
+    ziqquratet, both genuinely attested for the same lemma). Indefinite and
+    plural forms don't carry an equally reliable per-form signal without
+    pairing logic this doesn't attempt, so those stay unmapped for these
+    entries rather than guessed at.
+    """
+    if msd == "sg def nom":
+        if form.endswith("en"):
+            return "UTR"
+        if form.endswith("et"):
+            return "NEU"
+    elif msd == "sg def gen":
+        if form.endswith("ens"):
+            return "UTR"
+        if form.endswith("ets"):
+            return "NEU"
+    return None
+
+
 def convert_entry(pos: str, paradigm: str, lemma: str, forms: list[tuple[str, str]],
                    stats: Counter) -> list[Reading]:
     """forms: list of (writtenForm, msd) for one LexicalEntry."""
@@ -150,9 +174,10 @@ def convert_entry(pos: str, paradigm: str, lemma: str, forms: list[tuple[str, st
         tag = None
         if pos == "nn":
             base = NN_MSD_MAP.get(msd)
-            if base and gender:
-                tag = f"{base}:{gender}"
-            elif base and not gender:
+            form_gender = gender or (noun_gender_from_ending(form, msd) if base else None)
+            if base and form_gender:
+                tag = f"{base}:{form_gender}"
+            elif base and not form_gender:
                 stats["skipped_nn_unknown_gender"] += 1
                 continue
         elif pos == "vb":
