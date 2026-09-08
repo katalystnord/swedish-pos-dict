@@ -80,6 +80,12 @@ VB_MSD_MAP = {
     "pret_part def sg no_masc nom": "VB:PPC:PLU",
     "pret_part def sg masc nom": "VB:PPC:PLU",
     "pret_part def pl nom": "VB:PPC:PLU",
+    # Present participles (löpande, skrivande): invariant in Swedish, no
+    # gender/number inflection, confirmed against real existing entries
+    # (abdikerande, absorberande, ... all bare VB:PREPC, no subdivisions).
+    # No genitive variant exists in the current dictionary for this tag,
+    # so "pres_part gen" stays unmapped rather than inventing one.
+    "pres_part nom": "VB:PREPC",
 }
 
 AV_MSD_MAP = {
