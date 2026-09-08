@@ -1,0 +1,36 @@
+[tool.poetry]
+name = "swedish-pos-dict"
+version = "0.1.0"
+description = "Swedish POS/morphology dictionary source and build tooling for LanguageTool"
+authors = ["Katalyst Nord <david@katalystnord.com>"]
+readme = "README.md"
+packages = [{ include = "sv_dict" }]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+lxml = "^5.2.0"
+tqdm = "^4.66.0"
+
+[tool.poetry.dependencies.dictionary-tools]
+path = "./dict_tools"
+
+[tool.poetry.group.dev]
+optional = true
+
+[tool.poetry.group.dev.dependencies]
+pycodestyle = "^2.10.0"
+isort = "^5.12.0"
+
+[tool.poetry.group.test]
+optional = true
+
+[tool.poetry.group.test.dependencies]
+pytest = "^7.4.2"
+
+[[tool.poetry.source]]
+name = "PyPI"
+priority = "default"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
