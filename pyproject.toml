@@ -7,7 +7,7 @@ readme = "README.md"
 packages = [{ include = "sv_dict" }]
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = ">=3.11,<3.12"
 lxml = "^5.2.0"
 tqdm = "^4.66.0"
 
@@ -26,10 +26,6 @@ optional = true
 
 [tool.poetry.group.test.dependencies]
 pytest = "^7.4.2"
-
-[[tool.poetry.source]]
-name = "PyPI"
-priority = "default"
 
 [build-system]
 requires = ["poetry-core"]

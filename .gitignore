@@ -5,3 +5,15 @@ build/
 *.dict
 *.info
 .idea/
+
+# Raw SALDO/SALDOM downloads: large (70MB/242MB), CC BY 4.0 but not ours to
+# redistribute wholesale, fetch fresh via the URLs in README.md instead.
+data/saldo-source/
+
+# Intermediate pipeline outputs, regeneratable from data/saldo-source/ via
+# saldo_convert.py + merge_sources.py. Only combined_tagger_source.tsv (the
+# actual input to POSDictionaryBuilder for the currently-shipped dict) is
+# kept, as the source of truth for what's in swedish.dict right now.
+data/generated/saldo_tagger_source.tsv
+data/generated/existing_swedish_dump.txt
+data/generated/combined_tagger_source_sorted.tsv

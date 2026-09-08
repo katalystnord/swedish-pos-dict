@@ -47,9 +47,29 @@ is the up-to-date reference):
 
 ## Status
 
-Bootstrapped, not yet populated. Converting SALDO's LMF/XML export into the
-tagger-dict source format is the next step. Track progress in
-`implementation-plan.md` in the notes repo.
+First pass done: `sv_dict/saldo_convert.py` converts SALDOM's full-form
+morphology into the tagger-dict source format (mapping SALDO's own tagset
+onto the existing DSSO/SUC-style tags), `sv_dict/merge_sources.py` combines
+it with the dictionary already shipping in the fork. Result:
+`data/generated/combined_tagger_source.tsv`, 295,476 existing entries plus
+547,957 new ones from SALDO, currently what
+[`katalystnord/languagetool`](https://github.com/katalystnord/languagetool)'s
+`sv-improvements` branch actually ships as `swedish.dict`.
+
+Known gaps, left for a future pass rather than guessed at: adjective and
+participle genitive forms, present participles, and subjunctive mood verb
+forms, none of these have an established tag pattern in the existing
+dictionary to map onto yet. Also open: the ~2.5% of noun paradigms that are
+genuinely dual-gender (SALDO's "v"-class irregular paradigms), gender there
+varies per surface form rather than being fixed by the noun, so needs an
+ending-based heuristic rather than the current paradigm-name lookup.
+
+To reproduce: download `saldo_tagger_source.tsv`'s inputs per the URLs in
+`NOTICE.md`/this README's Data source section into `data/saldo-source/`
+(gitignored, large), then `poetry run python sv_dict/saldo_convert.py
+--input data/saldo-source/saldom.xml --output data/generated/saldo_tagger_source.tsv`.
+
+Track progress in `implementation-plan.md` in the notes repo.
 
 ## License
 
