@@ -68,18 +68,28 @@ def merge(existing: list[tuple[str, str, str]], saldo: list[tuple[str, str, str]
     existing_set = set(existing)
     # Anything already covered for this exact (form, lemma) pair, regardless
     # of tag, so we don't add a second, possibly-wrong reading SALDO
-    # produced for a pair the existing dictionary already handles.
+    # produced for a pair the existing (pre-SALDO) dictionary already
+    # handles. Fixed against the *original* existing set only, not updated
+    # as SALDO rows get added: a legitimate word commonly has several SALDO
+    # readings sharing one (form, lemma) pair (homographs like "hus" being
+    # both NN:OF:SIN:NOM:NEU and NN:OF:PLU:NOM:NEU, or "snika" being both
+    # VB:INF and VB:IMP), and mutating this set while iterating silently
+    # dropped every reading after the first for such a pair, found by
+    # checking ziqqurat's NEU reading disappearing after a merge despite
+    # being correctly produced by saldo_convert.py: ~96k pairs / ~109k
+    # readings dictionary-wide were affected before this fix.
     existing_form_lemma = {(f, l) for f, l, _ in existing}
 
     added = []
+    added_set = set()
     for row in saldo:
         form, lemma, tag = row
-        if row in existing_set:
+        if row in existing_set or row in added_set:
             continue
         if (form, lemma) in existing_form_lemma:
             continue
         added.append(row)
-        existing_form_lemma.add((form, lemma))
+        added_set.add(row)
 
     return existing, added
 

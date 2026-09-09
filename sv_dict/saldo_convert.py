@@ -13,10 +13,16 @@ Coverage as of this version: core nn/vb/av/ab/pn/pm/kn/pp/sn/in/nl forms,
 plus subjunctive verb forms (VB:...:KONJ) and adjective/participle genitive
 forms (...:GEN), both newly-introduced tag categories with no precedent in
 the pre-existing dictionary (purely additive, nothing queries them yet).
-Not yet covered: the ~2.5% of noun paradigms that are genuinely dual-gender
-(SALDO's "v"-class irregular declensions) only have their definite-singular
-forms recovered (via ending, -en/-et is unambiguous); indefinite and plural
-forms for those same nouns need positional pairing this doesn't attempt.
+Also covers SALDO's genuinely dual-gender nouns ("v"-class paradigms,
+paradigm string doesn't fix a gender): singular indefinite forms are
+gender-neutral in Swedish surface form, so both UTR and NEU readings are
+emitted; singular definite forms are classified per-form by their own
+ending (-en/-et is unambiguous); plural forms (where the paradigm has any)
+are classified by positional pairing against singular indefinite, see
+_convert_dual_gender_noun. A small residue (~1% of dual-gender entries,
+mostly Latin-derived grammar terms like "aktivum"/"perfektum" with two
+competing singular spellings) can't be paired unambiguously and stays
+unmapped rather than guessed at.
 
 License note: SALDOM data is CC BY 4.0, Språkbanken Text, University of
 Gothenburg. See ../NOTICE.md for the attribution this requires downstream.
@@ -24,7 +30,7 @@ Gothenburg. See ../NOTICE.md for the attribution this requires downstream.
 import argparse
 import re
 import sys
-from collections import Counter
+from collections import Counter, defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -179,10 +185,10 @@ def noun_gender_from_ending(form: str, msd: str) -> str | None:
     definite-singular form's own ending is still an unambiguous Swedish
     morphological marker (-en/-ens = utrum, -et/-ets = neutrum), verified
     against real dual-gender entries like "ziqqurat" (ziqquraten vs.
-    ziqquratet, both genuinely attested for the same lemma). Indefinite and
-    plural forms don't carry an equally reliable per-form signal without
-    pairing logic this doesn't attempt, so those stay unmapped for these
-    entries rather than guessed at.
+    ziqquratet, both genuinely attested for the same lemma). Only used for
+    the two definite-singular msds; indefinite and plural forms don't carry
+    an equally reliable per-form signal, those are handled separately by
+    _convert_dual_gender_noun's positional pairing instead.
     """
     if msd == "sg def nom":
         if form.endswith("en"):
@@ -197,12 +203,86 @@ def noun_gender_from_ending(form: str, msd: str) -> str | None:
     return None
 
 
+# Noun msd slots whose plural forms need positional pairing rather than a
+# per-form signal, for dual-gender ("v"-class) nouns. SALDO can attest
+# several competing plural spellings for the same slot (e.g. sudoku's "pl
+# indef nom" is sudokun/sudokus/sudokusar/sudokur/sudoku), where exactly the
+# spelling identical to "sg indef nom" is the neuter reading (a Swedish
+# neuter noun ending in a consonant has an indefinite plural identical to
+# its indefinite singular) and every other spelling at that position is a
+# valid utrum reading. Verified against saldom.xml samples spanning all
+# "*v_*" paradigm families (0v/3v/4v/6v/vv).
+_DUAL_GENDER_PLURAL_MSDS = ("pl indef nom", "pl indef gen", "pl def nom", "pl def gen")
+
+
+def _convert_dual_gender_noun(lemma: str, forms: list[tuple[str, str]],
+                               stats: Counter) -> list[Reading]:
+    by_msd: dict[str, list[str]] = defaultdict(list)
+    for form, raw_msd in forms:
+        msd = normalize_msd(raw_msd)
+        if msd in SKIP_MSD_TOKENS:
+            stats["skipped_compound_form"] += 1
+            continue
+        by_msd[msd].append(form)
+
+    out: list[Reading] = []
+
+    # sg indef nom/gen: one shared spelling in SALDO, grammatical under
+    # either gender ("en ziqqurat" and "ett ziqqurat" are both attested
+    # Swedish), so both readings get emitted for the same form.
+    for msd in ("sg indef nom", "sg indef gen"):
+        base = NN_MSD_MAP[msd]
+        for form in by_msd.get(msd, []):
+            out.append(Reading(form=form, lemma=lemma, tag=f"{base}:UTR"))
+            out.append(Reading(form=form, lemma=lemma, tag=f"{base}:NEU"))
+
+    # sg def nom/gen: each form's own ending is an unambiguous gender marker.
+    for msd in ("sg def nom", "sg def gen"):
+        base = NN_MSD_MAP[msd]
+        for form in by_msd.get(msd, []):
+            form_gender = noun_gender_from_ending(form, msd)
+            if form_gender:
+                out.append(Reading(form=form, lemma=lemma, tag=f"{base}:{form_gender}"))
+            else:
+                stats["skipped_nn_unknown_gender"] += 1
+
+    # Plural forms: positional pairing against "pl indef nom", whose own
+    # per-position gender is fixed by matching each spelling against the
+    # (single, shared) "sg indef nom" form. Requires exactly one sg-indef-nom
+    # spelling; a handful of entries (mostly Latin-derived grammar terms
+    # like "aktivum"/"perfektum" with two competing singular spellings) have
+    # none or several, and stay unmapped rather than guessed at. Each of the
+    # four plural msds is checked independently against "pl indef nom"'s
+    # length, so a length mismatch in one (observed for a few informal
+    # loanwords, e.g. "sudoku") only drops that one slot, not all four.
+    base_indef_forms = by_msd.get("sg indef nom", [])
+    pl_indef_nom = by_msd.get("pl indef nom", [])
+    if pl_indef_nom and len(base_indef_forms) == 1:
+        position_genders = ["NEU" if f == base_indef_forms[0] else "UTR" for f in pl_indef_nom]
+        for msd in _DUAL_GENDER_PLURAL_MSDS:
+            base = NN_MSD_MAP[msd]
+            plural_forms = by_msd.get(msd, [])
+            if len(plural_forms) != len(position_genders):
+                stats["skipped_nn_unknown_gender"] += len(plural_forms)
+                continue
+            for form, form_gender in zip(plural_forms, position_genders):
+                out.append(Reading(form=form, lemma=lemma, tag=f"{base}:{form_gender}"))
+    else:
+        for msd in _DUAL_GENDER_PLURAL_MSDS:
+            stats["skipped_nn_unknown_gender"] += len(by_msd.get(msd, []))
+
+    return out
+
+
 def convert_entry(pos: str, paradigm: str, lemma: str, forms: list[tuple[str, str]],
                    stats: Counter) -> list[Reading]:
     """forms: list of (writtenForm, msd) for one LexicalEntry."""
-    out: list[Reading] = []
     gender = noun_gender_from_paradigm(paradigm) if pos == "nn" else None
 
+    if pos == "nn" and gender is None:
+        return _convert_dual_gender_noun(lemma, forms, stats)
+
+    out: list[Reading] = []
     for form, raw_msd in forms:
         msd = normalize_msd(raw_msd)
         if msd in SKIP_MSD_TOKENS:
@@ -211,13 +291,11 @@ def convert_entry(pos: str, paradigm: str, lemma: str, forms: list[tuple[str, st
 
         tag = None
         if pos == "nn":
+            # gender is always known here: dual-gender ("v"-class) entries
+            # returned via _convert_dual_gender_noun above already.
             base = NN_MSD_MAP.get(msd)
-            form_gender = gender or (noun_gender_from_ending(form, msd) if base else None)
-            if base and form_gender:
-                tag = f"{base}:{form_gender}"
-            elif base and not form_gender:
-                stats["skipped_nn_unknown_gender"] += 1
-                continue
+            if base:
+                tag = f"{base}:{gender}"
         elif pos == "vb":
             tag = VB_MSD_MAP.get(msd)
         elif pos == "av":
