@@ -9,11 +9,14 @@ counted, not guessed at. Compound-internal forms (SALDO msd "c", "cm", "ci",
 "sms") are always skipped, they're stems for compound-building, not words a
 person would encounter standalone.
 
-Coverage as of this version: core nn/vb/av/ab/pn/pm/kn/pp/sn/in/nl forms.
-Not yet covered (skipped, not silently wrong): subjunctive verb forms
-(pres/pret konj), present participles, adjective genitive forms, all rare
-enough that leaving them out is safer than guessing a tag that doesn't
-exist elsewhere in the dictionary.
+Coverage as of this version: core nn/vb/av/ab/pn/pm/kn/pp/sn/in/nl forms,
+plus subjunctive verb forms (VB:...:KONJ) and adjective/participle genitive
+forms (...:GEN), both newly-introduced tag categories with no precedent in
+the pre-existing dictionary (purely additive, nothing queries them yet).
+Not yet covered: the ~2.5% of noun paradigms that are genuinely dual-gender
+(SALDO's "v"-class irregular declensions) only have their definite-singular
+forms recovered (via ending, -en/-et is unambiguous); indefinite and plural
+forms for those same nouns need positional pairing this doesn't attempt.
 
 License note: SALDOM data is CC BY 4.0, Språkbanken Text, University of
 Gothenburg. See ../NOTICE.md for the attribution this requires downstream.
@@ -83,9 +86,25 @@ VB_MSD_MAP = {
     # Present participles (löpande, skrivande): invariant in Swedish, no
     # gender/number inflection, confirmed against real existing entries
     # (abdikerande, absorberande, ... all bare VB:PREPC, no subdivisions).
-    # No genitive variant exists in the current dictionary for this tag,
-    # so "pres_part gen" stays unmapped rather than inventing one.
     "pres_part nom": "VB:PREPC",
+    # Genitive forms below (:GEN suffix) and subjunctive mood (:KONJ) have no
+    # precedent anywhere in the existing dictionary, there was nothing to
+    # verify a tag pattern against, so these are new tag names, not
+    # rediscovered ones. Purely additive: nothing in the current rule set
+    # queries these tags, so adding them can't change any existing behavior,
+    # only make more (rare) word forms recognizable at all. Added 2026-09-09
+    # per explicit request to complete this rather than leave it skipped.
+    "pres_part gen": "VB:PREPC:GEN",
+    "pret_part indef sg u gen": "VB:PPC:UTR:GEN",
+    "pret_part indef sg n gen": "VB:PPC:NEU:GEN",
+    "pret_part indef pl gen": "VB:PPC:PLU:GEN",
+    "pret_part def sg no_masc gen": "VB:PPC:PLU:GEN",
+    "pret_part def sg masc gen": "VB:PPC:PLU:GEN",
+    "pret_part def pl gen": "VB:PPC:PLU:GEN",
+    "pres konj aktiv": "VB:PRS:KONJ",
+    "pres konj s-form": "VB:PRS:KONJ:PF",
+    "pret konj aktiv": "VB:PRT:KONJ",
+    "pret konj s-form": "VB:PRT:KONJ:PF",
 }
 
 AV_MSD_MAP = {
@@ -99,6 +118,19 @@ AV_MSD_MAP = {
     "super indef nom": "JJ:S",
     "super def no_masc nom": "JJ:S:BF:NM",
     "super def masc nom": "JJ:S:BF:M",
+    # Genitive adjective forms: same situation as VB's :GEN tags above, no
+    # existing precedent, purely additive new tag names. Follows the same
+    # nom-side collapsing already used above (def sg no_masc/def pl -> BF).
+    "pos indef sg u gen": "JJ:PU:GEN",
+    "pos indef sg n gen": "JJ:PN:GEN",
+    "pos indef pl gen": "JJ:P:GEN",
+    "pos def sg no_masc gen": "JJ:BF:GEN",
+    "pos def sg masc gen": "JJ:M:GEN",
+    "pos def pl gen": "JJ:BF:GEN",
+    "komp gen": "JJ:K:GEN",
+    "super indef gen": "JJ:S:GEN",
+    "super def no_masc gen": "JJ:S:BF:NM:GEN",
+    "super def masc gen": "JJ:S:BF:M:GEN",
 }
 
 # Categories where every non-skipped form just gets the bare POS tag,
