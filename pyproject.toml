@@ -10,6 +10,7 @@ packages = [{ include = "sv_dict" }]
 python = ">=3.11,<3.12"
 lxml = "^5.2.0"
 tqdm = "^4.66.0"
+wikiextractor = "^3.1.0"
 
 [tool.poetry.dependencies.dictionary-tools]
 path = "./dict_tools"

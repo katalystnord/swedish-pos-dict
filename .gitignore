@@ -17,3 +17,10 @@ data/saldo-source/
 data/generated/saldo_tagger_source.tsv
 data/generated/existing_swedish_dump.txt
 data/generated/combined_tagger_source_sorted.tsv
+
+# Raw Wikipedia dump + extracted text for n-gram confusion-set data: large,
+# CC BY-SA 4.0, not ours to redistribute wholesale, and fully regeneratable
+# via the URL/pipeline in data/ngram-source/README.md. The n-gram binary
+# index built from this doesn't live in git either, per the plan; it gets
+# hosted on the LT server directly.
+data/ngram-source/
